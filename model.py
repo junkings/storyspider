@@ -3,6 +3,8 @@ import sqlite3
 import os
 
 base_path = os.getcwd()
+dbfile =  base_path + r'\spider.db'
+tabledesc = ("storyN", "chatper varchar(128), storyname varchar(128)")
 
 class spiderModel(object):
 
@@ -11,6 +13,15 @@ class spiderModel(object):
 		self.tablefield = tabledesc[1]
 		self.dbfile = dbfile
 
+	@staticmethod
+	def instansce(dbfile,tabledesc):
+		global m_instance
+		try:
+			m_instance
+		except:
+			m_instance = spiderModel(dbfile,tabledesc)
+		return m_instance
+
 	def createDB(self):
 		createlist = ["create table if not exists ", self.tablename, "(id integer primary key autoincrement, ", self.tablefield, ")"]
 		createsql = "".join(createlist)
@@ -18,6 +29,13 @@ class spiderModel(object):
 		self.conn.isolation_level = None  #?
 		print(createsql)
 		self.conn.execute(createsql)
+
+	def connectDB(self):
+		if hasattr(self,"conn") and self.conn != None:
+			self.conn.close()
+
+		self.conn = sqlite3.connect(self.dbfile)
+
 
 	def execDB(self, execsql):
 		self.conn.execute(execsql)
@@ -30,12 +48,22 @@ class spiderModel(object):
 		self.res = self.cur.fetchall()
 		return self.res
 
+	def getChapterName(self):
+		if self.res == None:
+			return
+
+		for line in self.res:
+			for col in line:
+				return col
+
 	def getCount(self):
 		return len(self.res)
 
 	def closeDB(self):
-		# self.cur.close()
-		self.conn.close()
+		if hasattr(self,"cur"):
+			self.cur.close()
+		if hasattr(self,"conn"):
+			self.conn.close()
 
 if __name__ == "__main__":
 	dbfile =  base_path + r'\spider.db'
@@ -43,13 +71,11 @@ if __name__ == "__main__":
 	# insertsql = "insert into storyN(chatper, storyname) values ('卷3', '大明春色')"
 	# selectsql = "select * from storyN order by id desc "
 
-	dbd = spiderModel(dbfile, tabledesc)
+	dbd = spiderModel.instansce(dbfile, tabledesc)
 	dbd.createDB()
 	# dbd.execDB(insertsql)
 	# res = dbd.getResult(selectsql)
 	# rows = dbd.getCount()
 	dbd.closeDB()
 
-	# for line in res:
-	# 	for col in line:
-	# 		print(col)
+
