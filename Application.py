@@ -6,57 +6,66 @@ import requests
 from bs4 import BeautifulSoup
 from model import spiderModel, dbfile, tabledesc
 from mailinter import Mail
+
 class spider(object):
-	def __init__(self):
+	def __init__(self, story=None):
 		self.res = ""
 		self.model = spiderModel.instansce(dbfile, tabledesc)
-		self.get_chapname()
 
+		if story == None:
+			self.story = {"大明春色":"http://book.zongheng.com/book/683061.html"}
+		else:
+			self.story = story
+
+		self.get_chapname()
 		self.Mail = Mail()
 
-		pass
-
 	@staticmethod
-	def instance():
+	def instance(story=None):
 		global m_instance
 		try:
 			m_instance
 		except:
-			m_instance = spider()
+			m_instance = spider(story)
 		return m_instance
 
 	def get_chapname(self):
-		self.selectsql = "select chatper from storyN order by id desc "
+		if not hasattr(self, "chaptername"):
+			self.chaptername = dict()
+		for storyName in self.story.keys():
+			self.selectsql = "select chatper from storyN where storyname = '%s' order by id desc " % storyName
 
-		self.model.connectDB()
-		self.model.getResult(self.selectsql)
+			self.model.connectDB()
+			self.model.getResult(self.selectsql)
 
-		self.chaptername = self.model.getChapterName()
-		self.model.closeDB()
-		print "the New chapter name", self.chaptername
+			self.chaptername[storyName] = self.model.getChapterName()
+			self.model.closeDB()
+			print("the New chapter name", self.chaptername[storyName], storyName)
 
-	def insert_chapname(self, name):
-		self.insertsql = "insert into storyN(chatper, storyname) values ('%s', '大明春色')" %name
+	def insert_chapname(self, name, storyname):
+		self.insertsql = "insert into storyN(chatper, storyname) values ('%s', '%s')" %(name, storyname)
 		self.model.connectDB()
 		self.model.execDB(self.insertsql)
 
 
 	def dataget(self):
-		url = "http://book.zongheng.com/book/683061.html"
-		# 处理网络异常情况
-		try:
-			ir = requests.get(url)
-		except Exception as e:
-			print e
-			return
-		if ir.status_code == 200:
-			self.res = ir.text
-			self.dealxpath()
+		for storyName in self.story:
+			url = self.story[storyName]  #大明春色
+			# 处理网络异常情况
+			try:
+				ir = requests.get(url)
+			except Exception as e:
+				print(e)
+				return
+			if ir.status_code == 200:
+				self.res = ir.text
+				self.dealxpath(storyName)
+			time.sleep(3)
 		# print(self.res)
 
 
 
-	def dealxpath(self):
+	def dealxpath(self, storyName):
 		if self.res == "":
 			return
 		soup = BeautifulSoup(self.res, "html5lib")
@@ -70,11 +79,11 @@ class spider(object):
 		# chapter_str = chapter_str.rstrip('\n')
 		# print(chapter_str)
 
-		if chapter_str != self.chaptername:
-			self.insert_chapname(chapter_str)
-			self.chaptername = chapter_str
+		if chapter_str != self.chaptername[storyName]:
+			self.insert_chapname(chapter_str, storyName)
+			self.chaptername[storyName] = chapter_str
 
-			self.Mail.content("大明春色更新： " + self.chaptername)
+			self.Mail.content(storyName+"更新： " + self.chaptername[storyName])
 			self.Mail.send()
 
 		time_class = soup.find(attrs={"class":"uptime"})
@@ -101,14 +110,16 @@ class spider(object):
 
 def run():
 	print("time:%s" % time.time())
-	spider.instance().dataget()
+	spider.instance(story).dataget()
 	global timer
 	timer = threading.Timer(360, run)
 	timer.start()
 	pass
 
+story = {"大明春色": "http://book.zongheng.com/book/683061.html", "永夜君王":"http://book.zongheng.com/book/342974.html"}
+
 if __name__ == "__main__":
-	spider.instance().dataget()
+	spider.instance(story).dataget()
 	timer = threading.Timer(360, run)
 	timer.start()
 	# spider.instance()
