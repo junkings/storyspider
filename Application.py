@@ -61,13 +61,16 @@ class spider(object):
 				return
 			if ir.status_code == 200:
 				self.res = ir.text
-				self.dealxpath(storyName)
+				if "qidian" in url:
+					self.dealxpath_qidian(storyName)
+				elif "zongheng" in url:
+					self.dealxpath_zongheng(storyName)
 			time.sleep(3)
 		# print(self.res)
 
 
 
-	def dealxpath(self, storyName):
+	def dealxpath_zongheng(self, storyName):
 		if self.res == "":
 			return
 		soup = BeautifulSoup(self.res, "html5lib")
@@ -110,6 +113,23 @@ class spider(object):
 		print(time_num, time_date)
 
 
+	def dealxpath_qidian(self, storyName):
+		if self.res == "":
+			return
+		soup = BeautifulSoup(self.res, "html5lib")
+		chapter_class = soup.find(attrs={"class":"update"})
+		chapter_str = (chapter_class.find(attrs={"class":"blue"})).text
+		chapter_str = chapter_str.strip()
+		if chapter_str != self.chaptername[storyName]:
+			self.insert_chapname(chapter_str, storyName)
+			self.chaptername[storyName] = chapter_str
+
+			self.Mail.content(storyName+"更新： " + self.chaptername[storyName])
+			self.Mail.send()
+
+		pass
+
+
 def run():
 	print("time:%s" % time.time())
 	spider.instance(story).dataget()
@@ -118,10 +138,9 @@ def run():
 	timer.start()
 	pass
 
-story = {"大明春色": "http://book.zongheng.com/book/683061.html", "永夜君王":"http://book.zongheng.com/book/342974.html"}
-
+story = {"大明春色": "http://book.zongheng.com/book/683061.html", "永夜君王":"http://book.zongheng.com/book/342974.html",
+         "蛊真人": "https://book.qidian.com/info/2527417"}
 if __name__ == "__main__":
 	spider.instance(story).dataget()
 	timer = threading.Timer(360, run)
 	timer.start()
-	# spider.instance()
