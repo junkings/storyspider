@@ -18,6 +18,7 @@ class spider(object):
 			self.story = story
 
 		self.get_chapname()
+		print(self.chaptername)
 		self.Mail = Mail()
 
 	@staticmethod
@@ -32,8 +33,9 @@ class spider(object):
 	def get_chapname(self):
 		if not hasattr(self, "chaptername"):
 			self.chaptername = dict()
+
 		for storyName in self.story.keys():
-			self.selectsql = "select chatper from storyN where storyname = '%s' order by id desc " % storyName
+			self.selectsql = "select chatper from storyN where storyname = '%s' order by id desc limit 1" % storyName
 
 			self.model.connectDB()
 			self.model.getResult(self.selectsql)
