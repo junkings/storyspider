@@ -31,8 +31,8 @@ class spiderModel(object):
 		self.conn.execute(createsql)
 
 	def connectDB(self):
-		if hasattr(self,"conn") and self.conn != None:
-			self.conn.close()
+		#if hasattr(self,"conn") and self.conn != None:
+		#	self.conn.close()
 
 		self.conn = sqlite3.connect(self.dbfile)
 
